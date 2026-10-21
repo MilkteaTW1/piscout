@@ -6,4 +6,4 @@ zeroconf>=0.130
 passlib>=1.7
 pyfatfs>=1.0
 pywebview>=5.0
-pytest>=8.0
+pytest>=9.1.1
