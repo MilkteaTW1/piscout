@@ -103,3 +103,30 @@ def test_validate_rejects(bad):
 
 def test_validate_ok():
     flasher.validate_config(_cfg(wifi_ssid="home", wifi_password="12345678"))
+
+
+def test_model_id_covers_current_board_families():
+    # /proc/device-tree/model strings as the rpi kernel writes them
+    assert flasher.model_id("Raspberry Pi 5 Model B Rev 1.0") == "pi5"
+    assert flasher.model_id("Raspberry Pi 500") == "pi5"
+    assert flasher.model_id("Raspberry Pi Compute Module 5") == "pi5"
+    assert flasher.model_id("Raspberry Pi Compute Module 5 Lite") == "pi5"
+    assert flasher.model_id("Raspberry Pi 4 Model B Rev 1.5") == "pi4"
+    assert flasher.model_id("Raspberry Pi 400 Rev 1.0") == "pi4"
+    assert flasher.model_id("Raspberry Pi Compute Module 4 Rev 1.1") == "pi4"
+    assert flasher.model_id("Raspberry Pi 3 Model B Plus Rev 1.3") == "pi3"
+    assert flasher.model_id("Raspberry Pi Zero 2 W Rev 1.0") == "pi3"
+    assert flasher.model_id("Raspberry Pi 2 Model B Rev 1.1") == "pi2"
+    assert flasher.model_id("Raspberry Pi Zero W Rev 1.1") == "pi1"
+    assert flasher.model_id("Raspberry Pi Model B Rev 2") == "pi1"
+    assert flasher.model_id("") is None
+    assert flasher.model_id("Not a Pi") is None
+
+
+def test_cm5_gets_the_64bit_pi5_image_not_the_pi1_32bit_one():
+    # CM5 is a BCM2712 board; before this fix it fell through to the
+    # "Pi Compute Module" fallback rule and was offered the pi1 32-bit image.
+    assert flasher.model_id("Raspberry Pi Compute Module 5") != "pi1"
+    label, tag = flasher.MODELS[flasher.model_id("Raspberry Pi Compute Module 5")]
+    assert tag == "pi5-64bit"
+    assert label == "Raspberry Pi 5 / 500 / CM5"

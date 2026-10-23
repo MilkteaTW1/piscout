@@ -166,7 +166,7 @@ def list_drives():
 
 # 型號 -> 官方清單裡的 devices 標籤
 MODELS = {
-    "pi5": ("Raspberry Pi 5", "pi5-64bit"),
+    "pi5": ("Raspberry Pi 5 / 500 / CM5", "pi5-64bit"),
     "pi4": ("Raspberry Pi 4 / 400 / CM4", "pi4-64bit"),
     "pi3": ("Raspberry Pi 3 / Zero 2 W", "pi3-64bit"),
     "pi2": ("Raspberry Pi 2", "pi2-32bit"),
@@ -177,7 +177,7 @@ MODELS = {
 def model_id(text):
     """把 /proc/device-tree/model 的字串轉成 MODELS 的 id，認不出來回傳 None。"""
     t = text or ""
-    if re.search(r"Raspberry Pi 5", t, re.I):
+    if re.search(r"Pi 5|Pi 500|Compute Module 5", t, re.I):
         return "pi5"
     if re.search(r"Pi 4|Pi 400|Compute Module 4", t, re.I):
         return "pi4"
