@@ -409,7 +409,7 @@ Pi 上」之後的事——找到它、連進去、看畫面、換系統。網�
 不能。Imager 負責把卡寫好；piscout 負責卡已經在 Pi 上之後的管理，也附了方便的本機燒錄。
 
 **支援 Linux / macOS 嗎？**
-目前只支援 Windows（含本機燒錄）。掃描、終端機、遠端重灌都是純 Python，之後可以移植。
+視窗版和本機燒錄只支援 Windows。區網掃描另外可以在 Linux、macOS 用命令列執行，只需要 Python 標準函式庫：`python -m piscout scan`（見英文版「Scan from the command line」）。終端機、遠端重灌都是純 Python，之後可以移植。
 
 ## 從原始碼執行
 
