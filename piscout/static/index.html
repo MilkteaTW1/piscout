@@ -139,7 +139,22 @@
 </div>
 <main>
   <div class="row"><h1>piscout</h1>
+    <span class="grow" style="flex:1"></span>
+    <span id="verTag" class="muted">v__PISCOUT_VERSION__</span>
+    <button id="updCfg" class="btn2">更新設定</button>
     <select id="langSel" title="Language"></select>
+  </div>
+  <div id="updPanel" class="hidden" style="margin:8px 0;padding:12px 14px;border-radius:8px;background:var(--card);border:1px solid var(--line)">
+    <div style="margin-bottom:8px">目前版本：<b id="updCur"></b></div>
+    <label style="display:block;margin:6px 0">有新版本時：
+      <select id="updMode">
+        <option value="notify">提醒我，由我決定</option>
+        <option value="auto">自動下載並安裝</option>
+        <option value="off">不要檢查（不連 GitHub）</option>
+      </select>
+    </label>
+    <label style="display:block;margin:6px 0"><input type="checkbox" id="updPre"> 也包含預先發行版（可能還不穩定）</label>
+    <div style="margin-top:8px"><button id="updNow" class="btn2">立即檢查</button> <span id="updMsg" class="muted"></span></div>
   </div>
   <div id="updBar" class="hidden">
     <span>有新版本可用：</span><b id="updVer"></b>
@@ -1682,31 +1697,58 @@ $('#langSel').value = window.PISCOUT_LANG || 'zh';
 $('#langSel').addEventListener('change', e => window.setLang(e.target.value));
 
 /* ================= 檢查更新 ================= */
-// 啟動時問一次 GitHub 有沒有新版本；可以略過某一版，或完全關掉（關掉後程式不會連 GitHub）。
-async function checkUpdate() {
-  let off = false, skip = '';
-  try { off = localStorage.getItem('updOff') === '1'; skip = localStorage.getItem('updSkip') || ''; } catch (e) {}
-  if (off || DEMO) return;
+// 啟動時問一次 GitHub 有沒有新版本。設定存在這台電腦的瀏覽器儲存：
+//   updMode：notify（預設，提醒）/ auto（自動下載並安裝）/ off（完全不連 GitHub）
+//   updPre：1 代表也看預先發行版
+const VERSION = '__PISCOUT_VERSION__';
+function updPref(key, dflt) { try { return localStorage.getItem(key) || dflt; } catch (e) { return dflt; } }
+function updSet(key, v) { try { localStorage.setItem(key, v); } catch (e) {} }
+function updMode() {
+  const m = updPref('updMode', '');
+  if (m) return m;
+  return updPref('updOff', '') === '1' ? 'off' : 'notify';     // 舊版的「不再提醒」
+}
+async function installUpdate(u) {
+  const b = $('#updGo'); b.disabled = true; b.textContent = '更新中…';
+  $('#updBar').classList.remove('hidden');
+  $('#updVer').textContent = 'v' + u.latest;
   try {
-    const u = await api('/api/update');
-    if (!u.newer || u.latest === skip) return;
+    await postJson('/api/update/install', {version: u.latest});
+    b.textContent = '更新中，程式會自動重開';
+  } catch (e) {
+    b.disabled = false; b.textContent = '立即更新';
+    $('#updVer').textContent = 'v' + u.latest + '  ' + e.message;
+    $('#updGo').onclick = () => installUpdate(u);
+  }
+}
+async function checkUpdate(manual) {
+  const mode = updMode();
+  if ((mode === 'off' && !manual) || DEMO) return;
+  const msg = $('#updMsg');
+  if (manual) msg.textContent = t('檢查中…');
+  try {
+    const q = '?channel=' + (updPref('updPre', '') === '1' ? 'pre' : 'stable') + (manual ? '&force=true' : '');
+    const u = await api('/api/update' + q);
+    if (!u.latest) { if (manual) msg.textContent = t('查不到新版本資訊（可能沒有網路）'); return; }
+    if (!u.newer) { if (manual) msg.textContent = t('已經是最新版') + ' (v' + u.current + ')'; return; }
+    if (manual) msg.textContent = t('有新版本：') + 'v' + u.latest;
+    if (mode === 'auto' && !manual) return installUpdate(u);
+    if (!manual && u.latest === updPref('updSkip', '')) return;
     $('#updVer').textContent = 'v' + u.latest;
     $('#updBar').classList.remove('hidden');
-    $('#updGo').onclick = async () => {
-      const b = $('#updGo'); b.disabled = true; b.textContent = '更新中…';
-      try {
-        await postJson('/api/update/install', {version: u.latest});
-        b.textContent = '更新中，程式會自動重開';
-      } catch (e) {
-        b.disabled = false; b.textContent = '立即更新';
-        $('#updVer').textContent = 'v' + u.latest + '  ' + e.message;
-      }
-    };
-    $('#updSkip').onclick = () => { try { localStorage.setItem('updSkip', u.latest); } catch (e) {} $('#updBar').classList.add('hidden'); };
-    $('#updOff').onclick = () => { try { localStorage.setItem('updOff', '1'); } catch (e) {} $('#updBar').classList.add('hidden'); };
-  } catch (e) { /* 沒網路或被擋，安靜略過 */ }
+    $('#updGo').onclick = () => installUpdate(u);
+    $('#updSkip').onclick = () => { updSet('updSkip', u.latest); $('#updBar').classList.add('hidden'); };
+    $('#updOff').onclick = () => { updSet('updMode', 'off'); $('#updMode').value = 'off'; $('#updBar').classList.add('hidden'); };
+  } catch (e) { if (manual) msg.textContent = t('查不到新版本資訊（可能沒有網路）'); }
 }
-setTimeout(checkUpdate, 1500);
+$('#updCur').textContent = 'v' + VERSION;
+$('#updMode').value = updMode();
+$('#updPre').checked = updPref('updPre', '') === '1';
+$('#updCfg').onclick = () => $('#updPanel').classList.toggle('hidden');
+$('#updMode').onchange = e => { updSet('updMode', e.target.value); if (e.target.value !== 'off') checkUpdate(false); };
+$('#updPre').onchange = e => { updSet('updPre', e.target.checked ? '1' : '0'); checkUpdate(true); };
+$('#updNow').onclick = () => checkUpdate(true);
+setTimeout(() => checkUpdate(false), 1500);
 
 /* ================= 啟動 ================= */
 (async function boot() {

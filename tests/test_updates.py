@@ -6,7 +6,7 @@ from piscout import updates
 @pytest.fixture(autouse=True)
 def fresh(monkeypatch):
     monkeypatch.delenv("PISCOUT_NO_UPDATE_CHECK", raising=False)
-    updates._cache.update(at=0.0, data=None)
+    updates._cache.clear()
     monkeypatch.setattr(updates, "__version__", "0.1.7")
 
 
@@ -24,12 +24,12 @@ def test_newer_release_is_reported():
 
 def test_same_or_older_release_is_not_an_update():
     assert not updates.check(lambda: {"tag_name": "v0.1.7"})["newer"]
-    updates._cache.update(at=0.0, data=None)
+    updates._cache.clear()
     assert not updates.check(lambda: {"tag_name": "v0.1.2"})["newer"]
 
 
 def test_two_digit_parts_compare_as_numbers():
-    updates._cache.update(at=0.0, data=None)
+    updates._cache.clear()
     assert updates.check(lambda: {"tag_name": "v0.1.10"})["newer"]
 
 
@@ -38,7 +38,7 @@ def test_network_failure_or_garbage_is_silent():
         raise OSError("offline")
     out = updates.check(boom)
     assert out["latest"] is None and out["newer"] is False
-    updates._cache.update(at=0.0, data=None)
+    updates._cache.clear()
     assert updates.check(lambda: {"tag_name": "weird"})["newer"] is False
 
 
@@ -90,3 +90,33 @@ def test_install_refuses_odd_versions_and_source_runs():
         updates.install("../evil", launch=lambda *a, **k: None, download=lambda *a: "")
     with pytest.raises(RuntimeError):
         updates.install("0.1.9", launch=lambda *a, **k: None)     # not a frozen exe
+
+
+def test_pre_channel_picks_highest_including_prerelease(monkeypatch):
+    rels = [
+        {"tag_name": "v0.1.12", "prerelease": False},
+        {"tag_name": "v0.1.13", "prerelease": True},
+        {"tag_name": "v0.1.9", "prerelease": False},
+        {"tag_name": "v9.9.9", "draft": True},
+    ]
+    monkeypatch.setattr(updates, "_get", lambda url: rels if "per_page" in url else {"tag_name": "v0.1.12"})
+    stable = updates.check(channel="stable")
+    pre = updates.check(channel="pre")
+    assert stable["latest"] == "0.1.12" and pre["latest"] == "0.1.13"
+    assert pre["newer"] and pre["channel"] == "pre"
+
+
+def test_channels_are_cached_separately_and_force_refetches():
+    calls = []
+
+    def fetch():
+        calls.append(1)
+        return {"tag_name": "v0.2.0"}
+
+    updates.check(fetch, channel="stable")
+    updates.check(fetch, channel="pre")
+    assert len(calls) == 2
+    updates.check(fetch, channel="pre")
+    assert len(calls) == 2
+    updates.check(fetch, channel="pre", force=True)
+    assert len(calls) == 3

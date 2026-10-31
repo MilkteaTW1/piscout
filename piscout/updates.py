@@ -19,12 +19,13 @@ from .i18n import tr
 
 REPO = "MilkteaTW1/piscout"
 API = f"https://api.github.com/repos/{REPO}/releases/latest"
+API_ALL = f"https://api.github.com/repos/{REPO}/releases?per_page=15"
 RELEASES_URL = f"https://github.com/{REPO}/releases/latest"
 TTL = 6 * 3600
 TIMEOUT = 6
 
 _lock = threading.Lock()
-_cache = {"at": 0.0, "data": None}
+_cache = {}   # channel -> {"at": 時間, "data": tag}
 
 
 def parse(version):
@@ -37,28 +38,38 @@ def disabled():
     return os.environ.get("PISCOUT_NO_UPDATE_CHECK", "") not in ("", "0")
 
 
-def _fetch():
-    req = urllib.request.Request(API, headers={"Accept": "application/vnd.github+json",
+def _get(url):
+    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json",
                                                "User-Agent": f"piscout/{__version__}"})
     with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-        return json.loads(r.read(1_000_000).decode("utf-8"))
+        return json.loads(r.read(2_000_000).decode("utf-8"))
 
 
-def check(fetch=_fetch, now=time.time):
-    """回傳 {current, latest, newer, url}；查不到時 latest 是 None、newer 是 False。"""
-    out = {"current": __version__, "latest": None, "newer": False, "url": RELEASES_URL}
+def _fetch(channel="stable"):
+    """stable：只看正式版（GitHub 的 latest）；pre：連預先發行版一起看，取版本最高的那個。"""
+    if channel != "pre":
+        return _get(API)
+    rels = [r for r in _get(API_ALL) if not r.get("draft") and parse(r.get("tag_name"))]
+    return max(rels, key=lambda r: parse(r["tag_name"]), default={})
+
+
+def check(fetch=_fetch, now=time.time, channel="stable", force=False):
+    """回傳 {current, latest, newer, url, channel}；查不到時 latest 是 None、newer 是 False。"""
+    channel = "pre" if channel == "pre" else "stable"
+    out = {"current": __version__, "latest": None, "newer": False, "url": RELEASES_URL, "channel": channel}
     if disabled():
         return out
     with _lock:
-        if _cache["data"] is None or now() - _cache["at"] > TTL:
+        c = _cache.get(channel)
+        if force or c is None or now() - c["at"] > TTL:
             try:
-                rel = fetch()
+                rel = fetch(channel) if fetch is _fetch else fetch()
                 tag = str(rel.get("tag_name") or "")
-                _cache["data"] = tag if parse(tag) else ""
+                c = {"at": now(), "data": tag if parse(tag) else ""}
             except Exception:
-                _cache["data"] = ""
-            _cache["at"] = now()
-        tag = _cache["data"]
+                c = {"at": now(), "data": ""}
+            _cache[channel] = c
+        tag = c["data"]
     if tag:
         out["latest"] = tag.lstrip("v")
         out["newer"] = parse(tag) > (parse(__version__) or (0, 0, 0))

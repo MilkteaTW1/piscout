@@ -77,7 +77,19 @@
    "開放的連接埠：": "Ports used: ",
    "要安裝這個擴充套件嗎？": "Install this add-on?",
    "要移除這個擴充套件嗎？": "Remove this add-on?",
-   "你放在裡面的資料不會被刪掉。": "The data you put in it will not be deleted."
+   "你放在裡面的資料不會被刪掉。": "The data you put in it will not be deleted.",
+   "更新設定": "Updates",
+   "目前版本：": "Current version: ",
+   "有新版本時：": "When a new version is out: ",
+   "提醒我，由我決定": "Tell me and let me decide",
+   "自動下載並安裝": "Download and install automatically",
+   "不要檢查（不連 GitHub）": "Do not check (never contacts GitHub)",
+   "也包含預先發行版（可能還不穩定）": "Include pre-releases (may be unstable)",
+   "立即檢查": "Check now",
+   "檢查中…": "Checking…",
+   "查不到新版本資訊（可能沒有網路）": "Could not get version info (maybe offline)",
+   "已經是最新版": "You are up to date",
+   "有新版本：": "New version: "
   },
   "sub": [
    [

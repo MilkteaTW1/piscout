@@ -20,6 +20,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import __version__
 from . import addons, clipboard, tools, updates, fleet, flasher, i18n, remote, remoteflash, scanner, transfer, vault
 from .i18n import tr
 
@@ -148,6 +149,7 @@ def index():
     html = (STATIC / "index.html").read_text(encoding="utf-8")
     return HTMLResponse(
         html.replace("__PISCOUT_TOKEN__", API_TOKEN)
+            .replace("__PISCOUT_VERSION__", __version__)
             .replace("__PISCOUT_DEMO__", "true" if DEMO else "false"),
         headers={"Cache-Control": "no-store"},
     )
@@ -160,9 +162,9 @@ async def api_clipboard():
 
 
 @app.get("/api/update")
-async def api_update():
-    """有沒有更新的版本（只問 GitHub 公開的 latest release，查不到就當沒有）。"""
-    return await run_in_threadpool(updates.check)
+async def api_update(channel: str = "stable", force: bool = False):
+    """有沒有更新的版本（只問 GitHub 公開的 release，查不到就當沒有）。channel=pre 連預先發行版一起看。"""
+    return await run_in_threadpool(lambda: updates.check(channel=channel, force=force))
 
 
 class UpdateReq(BaseModel):
