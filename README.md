@@ -30,6 +30,7 @@ Tested on a real Raspberry Pi 3 Model B (Raspberry Pi OS Bookworm):
 
 - **Find** – scans the LAN on launch and recognizes Raspberry Pis, no IP hunting
 - **Add by hand** – if the scan cannot see your Pi (router AP isolation, another subnet), type its IP or name (`raspberrypi.local`) and connect directly; only private-network addresses are accepted
+- **Add-ons** – turn a Pi into a NAS (Samba), install Docker, fail2ban or automatic security updates in one click; official apt packages only, and you see exactly what will happen before it runs
 - **Connect** – click *Connect*, enter the login, and get an SSH terminal inside the app
 - **See the desktop** – view and control the Pi's desktop through the SSH tunnel
 - **Always-on status bubble** – a small panel in the top-right corner shows the Pi's temperature, load, memory, disk and uptime; the agent is installed automatically after the first connection, and you can collapse or drag the bubble anywhere
@@ -107,6 +108,12 @@ python -m piscout scan --network 10.0.0.0/24 --all --json
 ```
 
 It needs only Python 3.9+ and the `piscout` folder (no pip packages; `zeroconf`, if installed, adds host names). It sweeps port 22, then reads the ARP table (`arp -a`, or `ip neigh` on Linux systems without `arp`). It does not need administrator rights.
+
+### Add-ons
+
+The *Add-ons* section of a Pi's info page installs and removes common services. Each add-on is a fixed entry in [`piscout/addons.py`](piscout/addons.py): the screen can only pick *which* one and *install/remove*, it never sends free-form commands. Scripts use apt packages only (no `curl | bash`), can be run again safely, and removing an add-on keeps your data. Installing needs the Pi's sudo, so log in with the password (or a key plus passwordless sudo, except the NAS add-on which needs the password to create the Samba account).
+
+To add your own, append one dict to `CATALOG` (`id`, `title`, `desc`, `steps`, `ports`, `check`, `install`, `remove`, `after`) and add the English text to `locales/en.json`; the field list is documented at the top of `addons.py`.
 
 ## How it differs from other tools
 
@@ -278,6 +285,7 @@ Have a different model or OS version? Please [report a compatibility result](../
 - **常駐狀態泡泡**：右上角的小面板隨時顯示樹莓派的溫度、負載、記憶體、磁碟與開機時間；第一次連線後會自動安裝 agent，泡泡可以收合，也能拖到畫面任何位置
 - **白話健康檢查**：在「系統資訊」分頁，檢查電源不足（新手最常見的問題）、過熱、SD 卡錯誤、磁碟快滿、記憶體不足、服務啟動失敗、時間不準，並附上建議；只讀取，不改任何東西
 - **一鍵快速設定**：一鍵開啟 I2C / SPI 與時間同步、安裝常用工具（htop、git、tree、ncdu、curl）、擴展檔案系統；只提供固定清單裡的動作，不能執行任意指令
+- **擴充套件**：一鍵把樹莓派變成 NAS（Samba）、裝 Docker、fail2ban 或自動安全更新；只用 apt 官方套件，執行前會先列出要做什麼
 - **輸入時的補齊選單**：在終端機打字時，像 VS Code 一樣跳出指令、檔案、資料夾的候選；上下鍵選、Tab 接受、Esc 關閉
 - **啟動很快**：一打開就先顯示上次的樹莓派，掃描在背景進行
 - **拖曳傳檔**：連線後把檔案拖進視窗，在終端機分頁會傳到 shell 目前所在的資料夾，在遠端桌面分頁會傳到樹莓派的桌面資料夾；同名檔案不會被覆蓋（自動改成 `名稱 (1).副檔名`）；目前不支援整個資料夾
@@ -341,6 +349,12 @@ Have a different model or OS version? Please [report a compatibility result](../
 
 「燒錄系統」選「插在這台電腦上的 SD 卡」。只列出 USB/SD 類的可移除磁碟，
 不會列出系統碟，也不會列出超過 512 GB 的磁碟。
+
+### 擴充套件
+
+樹莓派資訊頁裡的「擴充套件」可以一鍵安裝、移除常見服務。每一個都是 [`piscout/addons.py`](piscout/addons.py) 裡寫死的項目：畫面只能選「哪一個」和「安裝 / 移除」，不會送任意指令。腳本只用 apt 的官方套件（不跑 `curl | bash`），可以重複執行，移除時不會刪你的資料。安裝需要樹莓派的 sudo，所以請用密碼登入（用金鑰登入也可以，但要這個帳號 sudo 不需密碼；NAS 要用密碼來建立 Samba 帳號，一定要密碼登入）。
+
+想加自己的：在 `CATALOG` 加一筆（`id`、`title`、`desc`、`steps`、`ports`、`check`、`install`、`remove`、`after`），再把英文寫進 `locales/en.json`；欄位說明在 `addons.py` 開頭。
 
 ## 和其他工具的差別
 
@@ -444,6 +458,7 @@ piscout/
 ├── scanner.py        # 區網掃描、ARP 解析、mDNS
 ├── remote.py         # SSH 連線、啟動遠端桌面、安裝 agent
 ├── remoteflash.py    # 遠端重灌
+├── addons.py         # 擴充套件清單與安裝腳本（NAS、Docker……）
 ├── flasher.py        # 映像清單、型號建議、本機燒錄、開機設定
 ├── agent/agent.py    # 會被推到 Pi 上的小程式（只用標準函式庫）
 └── static/           # 介面；vendor/ 內是 xterm.js 與 noVNC

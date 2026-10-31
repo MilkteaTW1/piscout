@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import clipboard, tools, updates, fleet, flasher, i18n, remote, remoteflash, scanner, transfer, vault
+from . import addons, clipboard, tools, updates, fleet, flasher, i18n, remote, remoteflash, scanner, transfer, vault
 from .i18n import tr
 
 STATIC = Path(__file__).parent / "static"
@@ -364,6 +364,40 @@ async def api_setup(host: str, req: SetupReq):
             _with_client, host, req, lambda c: tools.setup_apply(c, req.action, req.password))
     except remote.RemoteError as e:
         raise HTTPException(502, str(e))
+
+
+# ------------------------------------------------------------ 擴充套件（NAS、Docker……）
+
+@app.post("/api/devices/{host}/addons")
+async def api_addons(host: str, login: Login):
+    """列出擴充套件和各自的安裝狀態。"""
+    host = _check_host(host)
+    try:
+        return await run_in_threadpool(
+            _with_client, host, login, lambda c: addons.status(c, host, login.username))
+    except remote.RemoteError as e:
+        raise HTTPException(502, str(e))
+
+
+@app.post("/api/devices/{host}/addons/{addon_id}/{op}")
+async def api_addon_run(host: str, addon_id: str, op: str, login: Login):
+    """開始安裝或移除，回傳工作代號，畫面再用 /api/addons/jobs/{id} 看進度。"""
+    host = _check_host(host)
+    if addon_id not in addons.BY_ID or op not in ("install", "remove"):
+        raise HTTPException(400, tr("不支援的操作"))
+    try:
+        job = addons.start(host, login.model_dump(), addon_id, op)
+    except remote.RemoteError as e:
+        raise HTTPException(409, str(e))
+    return {"job": job}
+
+
+@app.get("/api/addons/jobs/{job_id}")
+def api_addon_job(job_id: str, since: int = 0):
+    try:
+        return addons.poll(job_id, max(0, since))
+    except remote.RemoteError as e:
+        raise HTTPException(404, str(e))
 
 
 # ------------------------------------------------------------ 終端機 / 遠端桌面

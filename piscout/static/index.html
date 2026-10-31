@@ -120,6 +120,12 @@
   .setup-row { display:flex; gap:12px; align-items:center; padding:8px 10px; border-radius:8px; margin-bottom:6px; background:#1a1d27; }
   .btn2 { background:#2b3142; color:#e6e9f0; border:1px solid #3a4157; border-radius:6px; padding:5px 12px; cursor:pointer; }
   .btn2:disabled { opacity:.5; cursor:default; }
+  .addon { padding:10px 12px; border-radius:8px; margin-bottom:8px; background:#1a1d27; }
+  .addon .top { display:flex; gap:12px; align-items:center; }
+  .addon .tt { font-weight:600; } .addon .dt { font-size:12.5px; color:#9aa3b2; margin-top:2px; }
+  .addon details { margin-top:6px; font-size:12.5px; color:#9aa3b2; } .addon li { margin:2px 0; }
+  .addon pre { margin:8px 0 0; max-height:180px; overflow:auto; background:#10121a; padding:8px; border-radius:6px; font-size:12px; white-space:pre-wrap; }
+  .addon .after { margin-top:8px; padding:8px 10px; border-radius:6px; background:#16261c; color:#bfe8c8; font-size:13px; }
   #deskMsg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
              color:#bbb; padding:24px; text-align:center; white-space:pre-wrap; }
 </style>
@@ -860,6 +866,11 @@ async function showInfo() {
     const setup = h('div', {class: 'tbox'});
     pane.append(h('h3', {class: 'thead'}, '快速設定'), setup);
     loadSetup(setup, cur);
+    const addonBox = h('div', {class: 'tbox'});
+    pane.append(h('h3', {class: 'thead'}, '擴充套件'),
+      h('div', {class: 'muted', style: 'margin-bottom:8px'}, '一鍵裝好常見的服務。全部使用 apt 官方套件，裝之前會先告訴你會做什麼。'),
+      addonBox);
+    loadAddons(addonBox, cur);
   } catch (e) {
     pane.replaceChildren(h('div', {class: 'err'}, e.message));
   }
@@ -895,6 +906,72 @@ function setupRow(box, cur, it) {
   };
   return h('div', {class: 'setup-row'},
     h('div', {style: 'flex:1'}, h('div', {class: 'tt'}, it.title), h('div', {class: 'dt'}, it.desc)), state, btn);
+}
+
+/* ---------- 擴充套件（NAS、Docker……）---------- */
+async function loadAddons(box, cur) {
+  box.replaceChildren(h('div', {class: 'muted'}, '讀取中…'));
+  try {
+    const r = await postJson(`/api/devices/${cur.device.ip}/addons`, cur.cred);
+    if (sess !== cur) return;
+    if (!r.apt) {
+      box.replaceChildren(h('div', {class: 'warn'}, '這台的系統不是用 apt 管理套件（不是 Raspberry Pi OS、Debian 或 Ubuntu），擴充套件目前不能用。'));
+      return;
+    }
+    box.replaceChildren(...r.items.map(it => addonCard(box, cur, it)));
+  } catch (e) {
+    box.replaceChildren(h('div', {class: 'err'}, e.message));
+  }
+}
+
+function addonCard(box, cur, it) {
+  const state = h('span', {class: 'muted'}, it.installed ? '✔ 已安裝' : '未安裝');
+  const btn = h('button', {class: 'btn2'}, it.installed ? '移除' : '安裝');
+  const log = h('pre', {class: 'hidden'});
+  const msg = h('div', {class: 'err'});
+  const card = h('div', {class: 'addon'},
+    h('div', {class: 'top'},
+      h('div', {style: 'flex:1'}, h('div', {class: 'tt'}, it.title), h('div', {class: 'dt'}, it.desc)), state, btn),
+    h('details', {},
+      h('summary', {}, '會做什麼'),
+      h('ul', {}, it.steps.map(s => h('li', {}, s))),
+      h('div', {}, t('開放的連接埠：') + it.ports),
+      it.warn ? h('div', {class: 'warn'}, t('注意：') + it.warn) : ''),
+    log, msg);
+  if (it.installed && it.after) card.append(h('div', {class: 'after'}, it.after));
+  btn.onclick = async () => {
+    const op = it.installed ? 'remove' : 'install';
+    const ask = [t(op === 'install' ? '要安裝這個擴充套件嗎？' : '要移除這個擴充套件嗎？'), '', it.title];
+    if (op === 'install') {
+      ask.push('', t('會做什麼'), ...it.steps.map(s => '・' + s), '', t('開放的連接埠：') + it.ports);
+      if (it.warn) ask.push('', t('注意：') + it.warn);
+    } else {
+      ask.push('', t('你放在裡面的資料不會被刪掉。'));
+    }
+    if (!confirm(ask.join('\n'))) return;
+    btn.disabled = true; msg.textContent = ''; log.textContent = ''; log.classList.remove('hidden');
+    state.textContent = t(op === 'install' ? '安裝中…' : '移除中…');
+    try {
+      const {job} = await postJson(`/api/devices/${cur.device.ip}/addons/${it.id}/${op}`, cur.cred);
+      let since = 0;
+      for (;;) {
+        await new Promise(r => setTimeout(r, 1000));
+        if (sess !== cur) return;
+        const r = await api(`/api/addons/jobs/${job}?since=${since}`);
+        since = r.next;
+        if (r.text) { log.textContent += r.text; log.scrollTop = log.scrollHeight; }
+        if (r.state === 'running') continue;
+        if (r.state === 'error') throw new Error(r.error);
+        break;
+      }
+      loadAddons(box, cur);
+    } catch (e) {
+      msg.textContent = e.message;
+      state.textContent = it.installed ? '✔ 已安裝' : '未安裝';
+      btn.disabled = false;
+    }
+  };
+  return card;
 }
 
 $('#stTerm').onclick = () => setPane('term');
