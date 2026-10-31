@@ -5,6 +5,7 @@ ARP 表，再讀 ARP 表比對 MAC 前綴。mDNS 只是用來補主機名稱。
 """
 import asyncio
 import ipaddress
+import os
 import re
 import socket
 import subprocess
@@ -66,15 +67,41 @@ def parse_arp(text):
     return table
 
 
-def read_arp():
+WINDOWS = os.name == "nt"
+
+NEIGH_LINE = re.compile(
+    r"^(\d{1,3}(?:\.\d{1,3}){3})\s.*?lladdr\s+([0-9a-fA-F]{1,2}(?::[0-9a-fA-F]{1,2}){5})"
+)
+
+
+def parse_ip_neigh(text):
+    """把 Linux `ip neigh` 的輸出解析成 {ip: mac}（沒有 lladdr 的 FAILED / INCOMPLETE 會被略過）。"""
+    table = {}
+    for line in text.splitlines():
+        m = NEIGH_LINE.search(line.strip())
+        if not m:
+            continue
+        ip, mac = m.group(1), normalize_mac(m.group(2))
+        if mac in ("ff:ff:ff:ff:ff:ff", "00:00:00:00:00:00") or mac.startswith("01:00:5e"):
+            continue
+        table[ip] = mac
+    return table
+
+
+def _run(cmd):
+    kw = {"creationflags": subprocess.CREATE_NO_WINDOW} if WINDOWS else {}
     try:
-        out = subprocess.run(
-            ["arp", "-a"], capture_output=True, text=True, timeout=10,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        ).stdout
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=10, **kw).stdout
     except (OSError, subprocess.TimeoutExpired):
-        return {}
-    return parse_arp(out)
+        return ""
+
+
+def read_arp():
+    table = parse_arp(_run(["arp", "-a"]))
+    if not table and not WINDOWS:
+        # 新的 Linux 發行版常常沒裝 net-tools，沒有 arp 指令，改讀 `ip neigh`
+        table = parse_ip_neigh(_run(["ip", "neigh"]))
+    return table
 
 
 async def _probe(ip, port, timeout):
