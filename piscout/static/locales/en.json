@@ -684,7 +684,6 @@
   "用這台樹莓派的登入密碼建立你的 Samba 帳號，並啟動服務": "Create your Samba account with this Pi's login password and start the service",
   "TCP 445、139，UDP 137、138（只在區網使用，不要對外網開放）": "TCP 445 and 139, UDP 137 and 138 (local network only, do not expose to the internet)",
   "要用密碼登入才能安裝。如果要用外接硬碟，請先把它掛載到 /srv/nas。": "Requires a password login. To use an external drive, mount it at /srv/nas first.",
-  "在 Windows 檔案總管的網址列輸入 \\{ip}\\pi-nas，帳號 {user}，密碼就是這台樹莓派的登入密碼。macOS 用 smb://{ip}/pi-nas。": "In Windows Explorer's address bar enter \\{ip}\\pi-nas, user {user}, and the password is this Pi's login password. On macOS use smb://{ip}/pi-nas.",
   "Docker：容器引擎": "Docker: container engine",
   "用容器跑各種服務（Home Assistant、資料庫、網站……），不用一個個手動設定環境。": "Run services in containers (Home Assistant, databases, websites…) without setting up each environment by hand.",
   "安裝 docker.io（apt 官方套件）並設為開機啟動": "Install docker.io (official apt package) and start it at boot",
@@ -711,7 +710,8 @@
   "這個帳號用 sudo 需要密碼，請用密碼登入再試一次。": "This account needs a password for sudo. Log in with the password and try again.",
   "這個擴充套件要用密碼登入才能安裝。": "This add-on can only be installed with a password login.",
   "這台樹莓派正在安裝或移除別的東西，請等它完成。": "This Pi is already installing or removing something. Wait for it to finish.",
-  "安裝指令失敗（代碼 {code}），詳細內容看下面的紀錄。": "The command failed (code {code}). See the log below for details."
+  "安裝指令失敗（代碼 {code}），詳細內容看下面的紀錄。": "The command failed (code {code}). See the log below for details.",
+  "在 Windows 檔案總管的網址列輸入 \\\\{ip}\\pi-nas，帳號 {user}，密碼就是這台樹莓派的登入密碼。macOS 用 smb://{ip}/pi-nas。": "In Windows Explorer's address bar enter \\\\{ip}\\pi-nas, user {user}, and the password is this Pi's login password. On macOS use smb://{ip}/pi-nas."
  },
  "installer": {
   "custom": {

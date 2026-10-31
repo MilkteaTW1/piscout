@@ -113,7 +113,18 @@ It needs only Python 3.9+ and the `piscout` folder (no pip packages; `zeroconf`,
 
 The *Add-ons* section of a Pi's info page installs and removes common services. Each add-on is a fixed entry in [`piscout/addons.py`](piscout/addons.py): the screen can only pick *which* one and *install/remove*, it never sends free-form commands. Scripts use apt packages only (no `curl | bash`), can be run again safely, and removing an add-on keeps your data. Installing needs the Pi's sudo, so log in with the password (or a key plus passwordless sudo, except the NAS add-on which needs the password to create the Samba account).
 
-To add your own, append one dict to `CATALOG` (`id`, `title`, `desc`, `steps`, `ports`, `check`, `install`, `remove`, `after`) and add the English text to `locales/en.json`; the field list is documented at the top of `addons.py`.
+#### Writing an add-on
+
+Add one dict to `CATALOG` in `piscout/addons.py` (fields are documented at the top of that file) and put the English text of every string into `piscout/static/locales/en.json` under `backend` (the Chinese sentence is the key). Then run the same check the bot runs:
+
+```bash
+python tools/check_addons.py          # static rules, runs anywhere
+python tools/check_addons.py --run    # on a throwaway Linux machine with passwordless sudo: really installs, re-installs and removes
+```
+
+Rules: official apt packages only; no downloads or URLs, no third-party apt sources, no `rm -r`, no password / user / sudo / SSH-key changes, no reboot; the scripts must be safe to run twice, and removing must keep the user's data.
+
+When you open a pull request, the *add-on check* workflow runs the static check and the live install/remove test on a clean Ubuntu machine. Add-ons run as root on other people's Pis, so after the bot is green a maintainer still reads the script before merging.
 
 ## How it differs from other tools
 
@@ -354,7 +365,18 @@ Have a different model or OS version? Please [report a compatibility result](../
 
 樹莓派資訊頁裡的「擴充套件」可以一鍵安裝、移除常見服務。每一個都是 [`piscout/addons.py`](piscout/addons.py) 裡寫死的項目：畫面只能選「哪一個」和「安裝 / 移除」，不會送任意指令。腳本只用 apt 的官方套件（不跑 `curl | bash`），可以重複執行，移除時不會刪你的資料。安裝需要樹莓派的 sudo，所以請用密碼登入（用金鑰登入也可以，但要這個帳號 sudo 不需密碼；NAS 要用密碼來建立 Samba 帳號，一定要密碼登入）。
 
-想加自己的：在 `CATALOG` 加一筆（`id`、`title`、`desc`、`steps`、`ports`、`check`、`install`、`remove`、`after`），再把英文寫進 `locales/en.json`；欄位說明在 `addons.py` 開頭。
+#### 寫一個擴充套件
+
+在 `piscout/addons.py` 的 `CATALOG` 加一筆（欄位說明在檔案開頭），並把每一句文字的英文翻譯寫進 `piscout/static/locales/en.json` 的 `backend`（以中文原句當 key）。再跑一次機器人會跑的檢查：
+
+```bash
+python tools/check_addons.py          # 靜態規則，哪裡都能跑
+python tools/check_addons.py --run    # 在可以丟棄的 Linux 機器上（要有免密碼 sudo）：真的安裝、再裝一次、移除
+```
+
+規則：只能用 apt 官方套件；不能下載東西或出現網址、不能加第三方 apt 來源、不能 `rm -r`、不能改密碼 / 使用者 / sudo / SSH 金鑰、不能重開機；腳本要能安全地重複執行，移除時不能刪使用者的資料。
+
+開 pull request 後，*add-on check* 流程會自動跑靜態檢查，並在乾淨的 Ubuntu 機器上真的安裝、再裝、移除一次。擴充套件會以 root 身分在別人的樹莓派上執行，所以機器人通過後，維護者還是會看過腳本才合併。
 
 ## 和其他工具的差別
 

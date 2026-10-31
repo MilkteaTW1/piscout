@@ -1,0 +1,65 @@
+name: add-on check
+
+# Verifies add-ons contributed to piscout/addons.py: a static check (no downloads, no third-party apt
+# sources, no dangerous commands, valid bash, English translation present) and a live check that really
+# installs, re-installs and removes each add-on on a clean Ubuntu machine.
+on:
+  pull_request:
+    paths:
+      - "piscout/addons.py"
+      - "piscout/static/locales/en.json"
+      - "tools/check_addons.py"
+      - "tests/test_addons.py"
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Static rules
+        run: python tools/check_addons.py
+      - run: python -m pytest -q tests/test_addons.py tests/test_locales.py
+
+  live:
+    needs: static
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Install, re-install and remove every add-on
+        run: python tools/check_addons.py --run
+
+  automerge:
+    # Only for the maintainers' own PRs. Add-ons from other people run as root on users' Raspberry Pis,
+    # so after the checks above pass, a maintainer still reads the script before merging.
+    needs: [static, live]
+    if: contains(fromJSON('["OWNER","MEMBER"]'), github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Squash-merge when only add-on files changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          files=$(gh pr view "$PR" --repo "$REPO" --json files -q '.files[].path')
+          for f in $files; do
+            case "$f" in
+              piscout/addons.py|piscout/static/locales/en.json|tests/test_addons.py|README.md|tools/check_addons.py) ;;
+              *) echo "$f is not an add-on file; leaving the merge to a human"; exit 0 ;;
+            esac
+          done
+          gh pr merge "$PR" --repo "$REPO" --squash --delete-branch

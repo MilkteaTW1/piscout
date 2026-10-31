@@ -1,0 +1,32 @@
+name: Add-on idea / 擴充套件點子
+description: Suggest an add-on, or tell us you are going to write one.
+title: "[add-on] "
+labels: ["add-on"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Add-ons install from the **official apt repositories only** (no `curl | bash`, no third-party apt sources, no reboot).
+        If you want to write it yourself, see "Writing an add-on" in the README, then open a pull request: a bot checks it automatically.
+  - type: input
+    id: what
+    attributes:
+      label: What should it install?
+      placeholder: "Mosquitto MQTT broker (apt package: mosquitto)"
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it useful on a Pi?
+    validations:
+      required: true
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who will write it?
+      options:
+        - I will open a pull request
+        - I would like someone else to
+    validations:
+      required: true
