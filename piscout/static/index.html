@@ -51,6 +51,9 @@
   .warn { color: var(--warn); }
   label.toggle { font-size: 13px; color: var(--muted); display:flex; gap:6px; align-items:center; }
   label.toggle input { width:auto; }
+  #updPanel { margin:8px 0; padding:10px 14px; border-radius:8px; background:var(--card); border:1px solid var(--line); }
+  #updPanel .updRow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:6px 0; }
+  #updPanel select { width:auto; min-width:220px; }
   .bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; margin-top: 8px; }
   .bar > div { height:100%; background: var(--accent); width:0; transition: width .3s; }
   .hidden { display:none !important; }
@@ -144,23 +147,17 @@
     <button id="updCfg" class="btn2">更新設定</button>
     <select id="langSel" title="Language"></select>
   </div>
-  <div id="updPanel" class="hidden" style="margin:8px 0;padding:12px 14px;border-radius:8px;background:var(--card);border:1px solid var(--line)">
-    <div style="margin-bottom:8px">目前版本：<b id="updCur"></b></div>
-    <label style="display:block;margin:6px 0">有新版本時：
+  <div id="updPanel" class="hidden">
+    <div class="updRow"><span class="muted">目前版本：</span><b id="updCur"></b></div>
+    <div class="updRow"><span class="muted">有新版本時：</span>
       <select id="updMode">
         <option value="notify">提醒我，由我決定</option>
         <option value="auto">自動下載並安裝</option>
         <option value="off">不要檢查（不連 GitHub）</option>
       </select>
-    </label>
-    <label style="display:block;margin:6px 0"><input type="checkbox" id="updPre"> 也包含預先發行版（可能還不穩定）</label>
-    <div style="margin-top:8px"><button id="updNow" class="btn2">立即檢查</button> <span id="updMsg" class="muted"></span></div>
-  </div>
-  <div id="updBar" class="hidden">
-    <span>有新版本可用：</span><b id="updVer"></b>
-    <button id="updGo" class="primary">立即更新</button>
-    <button id="updSkip">略過這版</button>
-    <button id="updOff">不再提醒</button>
+    </div>
+    <label class="toggle updRow"><input type="checkbox" id="updPre"> 也包含預先發行版（可能還不穩定）</label>
+    <div class="updRow"><button id="updNow" class="btn2">立即檢查</button><span id="updMsg" class="muted"></span></div>
   </div>
   <nav>
     <button id="tabDevices" class="on">裝置</button>

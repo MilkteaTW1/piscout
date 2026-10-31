@@ -63,8 +63,10 @@ The Devices screenshot uses the simulated device; the Flash OS screenshot uses t
 Download `piscout-setup.exe` from [Releases](../../releases) and run it: it installs per user (no administrator
 rights), adds a Start menu entry and an optional desktop shortcut, and the installer follows your Windows language.
 Prefer no installer? Build `piscout.exe` yourself, see below.
-When a newer release is published, the app tells you and updates itself with one click (*Update now*, checksum
-verified). Turn the check off with *Don't remind me* or `PISCOUT_NO_UPDATE_CHECK=1`; see [PRIVACY](docs/PRIVACY.md).
+The header shows the current version. Open **Updates** there to choose what happens when a newer release is published:
+be told and decide (default), **download and install automatically** (checksum verified), or never check (the app then
+never contacts GitHub). You can also include **pre-releases**, and *Check now* forces a refresh. `PISCOUT_NO_UPDATE_CHECK=1`
+turns the check off entirely; see [PRIVACY](docs/PRIVACY.md).
 Normal use (scanning, terminal, remote desktop, overview) does **not** need administrator rights.
 Only *local SD card flashing* does, and the app offers a "Restart as administrator" button when
 you get there. The file is not code-signed, so SmartScreen may warn you ("More info → Run anyway").
@@ -241,6 +243,7 @@ Custom features, integrations or setup help are available. See [墨鋒 Inkacuity
 | Drag-and-drop upload into the terminal's current folder | works (tested by the author) |
 | Typing suggestions popup in the terminal | works (tested by the author) |
 | Local SD card flashing (download, write, read-back verify, boot settings) | works: the Pi booted and the configured user could log in |
+| Add-ons (NAS, Docker, fail2ban, automatic updates) | works (tested by the author on a Raspberry Pi) |
 
 **Tested without a real device:** image pre-processing and boot-settings injection (also run against the real
 Raspberry Pi OS 64-bit image: source SHA-256 verified, `user-data` written into the boot partition), the Pi-side
@@ -316,7 +319,7 @@ Have a different model or OS version? Please [report a compatibility result](../
 到 [Releases](../../releases) 下載 `piscout-setup.exe` 執行即可：安裝在你自己的帳號下（不需要系統管理員權限），
 會建立開始功能表項目與可選的桌面捷徑，安裝畫面會跟著你的 Windows 語言。
 不想安裝也可以依下方「從原始碼執行」自行打包單檔 `piscout.exe`。
-有新版本發佈時，程式會提醒你，按「立即更新」就在程式裡自動更新（會核對 SHA-256）。可選「不再提醒」或設定 `PISCOUT_NO_UPDATE_CHECK=1` 關閉，詳見 [隱私權政策](docs/PRIVACY.md)。
+標題列會顯示目前版本。點「更新設定」可以選有新版本時要怎麼做：提醒你、由你決定（預設）、**自動下載並安裝**（會核對 SHA-256），或完全不檢查（此時程式不會連 GitHub）。也可以選擇**包含預先發行版**，「立即檢查」會強制重新查詢。設定 `PISCOUT_NO_UPDATE_CHECK=1` 可完全關閉，詳見 [隱私權政策](docs/PRIVACY.md)。
 一般使用（掃描、終端機、遠端桌面、總覽）不需要系統管理員權限；只有「本機燒錄」寫入 SD 卡時，才會請你以系統管理員身分重新啟動。
 
 > 檔案沒有簽章，SmartScreen 可能警告，按「其他資訊 → 仍要執行」。
