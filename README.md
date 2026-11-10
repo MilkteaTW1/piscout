@@ -128,6 +128,8 @@ Rules: official apt packages only; no downloads or URLs, no third-party apt sour
 
 When you open a pull request, the *add-on check* workflow runs the static check and the live install/remove test on a clean Ubuntu machine. Add-ons run as root on other people's Pis, so after the bot is green a maintainer still reads the script before merging.
 
+**Related free tool:** setting up a headless Pi on Wi-Fi? The [QR code generator](https://inkacuity.com/en/tools/qr-code-generator) makes a Wi-Fi QR code (network name and password) in your browser; nothing is uploaded.
+
 ## How it differs from other tools
 
 | Tool | Discovery | Terminal | Remote desktop | Flash | Re-image without removing the card |
@@ -380,6 +382,8 @@ python tools/check_addons.py --run    # 在可以丟棄的 Linux 機器上（要
 規則：只能用 apt 官方套件；不能下載東西或出現網址、不能加第三方 apt 來源、不能 `rm -r`、不能改密碼 / 使用者 / sudo / SSH 金鑰、不能重開機；腳本要能安全地重複執行，移除時不能刪使用者的資料。
 
 開 pull request 後，*add-on check* 流程會自動跑靜態檢查，並在乾淨的 Ubuntu 機器上真的安裝、再裝、移除一次。擴充套件會以 root 身分在別人的樹莓派上執行，所以機器人通過後，維護者還是會看過腳本才合併。
+
+**相關免費工具:** 要幫沒有螢幕的 Pi 設定 Wi-Fi?[QR Code 產生器](https://inkacuity.com/tools/qr-code-generator)可以在瀏覽器裡做出 Wi-Fi QR code(網路名稱與密碼),資料不會上傳。
 
 ## 和其他工具的差別
 
