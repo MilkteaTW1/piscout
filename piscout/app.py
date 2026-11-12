@@ -10,13 +10,14 @@ import secrets
 import socket
 import stat
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -139,7 +140,9 @@ async def api_resolve(name: str):
         pass
     try:
         infos = await run_in_threadpool(socket.getaddrinfo, name, 22, socket.AF_INET, socket.SOCK_STREAM)
-    except OSError:
+    except (OSError, UnicodeError):  # "a..b" 或超過 63 字的標籤會在 idna 編碼時丟 UnicodeError
+        raise HTTPException(404, tr("找不到 {name}：請確認名稱或 IP 沒有打錯，而且這台電腦和樹莓派在同一個網路。", name=name))
+    if not infos:
         raise HTTPException(404, tr("找不到 {name}：請確認名稱或 IP 沒有打錯，而且這台電腦和樹莓派在同一個網路。", name=name))
     return {"ip": _check_host(infos[0][4][0])}
 
@@ -499,6 +502,18 @@ def _take_session(token, kind):
     return sess
 
 
+def _ws_allowed(ws):
+    """HTTP 的 guard 不會跑在 websocket 上，這裡補上同樣的 Host 檢查，
+    並拒絕從別的網站（Origin 不是本機）發起的連線。"""
+    host = (ws.headers.get("host") or "").split(":")[0]
+    if host not in ("127.0.0.1", "localhost"):
+        return False
+    origin = ws.headers.get("origin")
+    if origin and urllib.parse.urlparse(origin).hostname not in ("127.0.0.1", "localhost"):
+        return False
+    return True
+
+
 async def _accept(ws):
     # noVNC 會要求 binary 子協定
     if "binary" in ws.scope.get("subprotocols", []):
@@ -509,12 +524,21 @@ async def _accept(ws):
 
 @app.websocket("/ws/terminal/{token}")
 async def ws_terminal(ws: WebSocket, token: str, cols: int = 80, rows: int = 24):
+    if not _ws_allowed(ws):
+        await ws.close(code=4403)
+        return
     sess = _take_session(token, "terminal")
     if sess is None:
         await ws.close(code=4404)
         return
     await _accept(ws)
-    chan = sess["client"].invoke_shell(term="xterm-256color", width=cols, height=rows)
+    try:
+        chan = sess["client"].invoke_shell(term="xterm-256color", width=cols, height=rows)
+    except Exception:
+        # SSH 在登入後到開 shell 之間斷掉：關掉連線，不要留著佔資源
+        await run_in_threadpool(_drop, sess)
+        await ws.close(code=1011)
+        return
     TERMS[sess["host"]] = sess["client"]  # 傳檔時用它找出終端機目前的資料夾
     tap = transfer.CwdTap(chan.send)
     TAPS[sess["host"]] = tap
@@ -542,6 +566,9 @@ async def ws_terminal(ws: WebSocket, token: str, cols: int = 80, rows: int = 24)
 
 @app.websocket("/ws/desktop/{token}")
 async def ws_desktop(ws: WebSocket, token: str):
+    if not _ws_allowed(ws):
+        await ws.close(code=4403)
+        return
     sess = _take_session(token, "desktop")
     if sess is None:
         await ws.close(code=4404)
@@ -696,7 +723,11 @@ async def api_upload_file(token: str, request: Request, name: str):
         await run_in_threadpool(f.close)
         sftp = u["sftp"]
         if ok:
-            await run_in_threadpool(sftp.posix_rename, final + ".piscout-part", final)
+            try:
+                await run_in_threadpool(sftp.posix_rename, final + ".piscout-part", final)
+            except (IOError, OSError) as e:
+                # 例如同名檔案剛好在上傳期間被建立、或伺服器不支援 posix-rename
+                raise HTTPException(502, tr("無法寫入 {dir}：{e}", dir=u["dir"], e=e))
         else:
             try:
                 await run_in_threadpool(sftp.remove, final + ".piscout-part")
@@ -725,7 +756,7 @@ async def api_stats(host: str):
     host = _check_host(host)
     try:
         return await run_in_threadpool(_fetch_stats, host)
-    except OSError:
+    except (OSError, ValueError):  # 連不上，或 8765 port 上回的不是 JSON
         raise HTTPException(502, tr("agent 沒有回應"))
 
 
