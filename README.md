@@ -111,7 +111,7 @@ pip install -r requirements.txt
 python run_gui.py
 ```
 
-Build the app: `pip install pyinstaller` then `build.bat` (the result is the folder `dist\piscout`). Run the checks CI runs: `pip install pytest httpx ruff`, then `ruff check .` and `pytest` (SSH and the network are mocked, no Pi needed).
+Build the app: `pip install pyinstaller` then `build.bat` (the result is the folder `dist\piscout`). Run the checks CI runs: `pip install -r requirements.txt ruff`, then `ruff check .` and `pytest` (SSH and the network are mocked, no Pi needed).
 
 ### Scan from the command line (Windows, macOS, Linux)
 
@@ -516,7 +516,7 @@ piscout/
 tests/
 ```
 
-跑 CI 會跑的檢查：`pip install pytest httpx ruff`，再執行 `ruff check .` 和 `pytest`（SSH 與網路都是模擬的，不需要樹莓派）。
+跑 CI 會跑的檢查：`pip install -r requirements.txt ruff`，再執行 `ruff check .` 和 `pytest`（SSH 與網路都是模擬的，不需要樹莓派）。
 
 ## 注意事項
 
