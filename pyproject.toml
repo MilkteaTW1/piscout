@@ -1,6 +1,6 @@
 [project]
 name = "piscout"
-version = "0.1.15"
+version = "0.1.16"
 description = "Discover Raspberry Pis on your LAN, SSH into them, view their desktop, and re-image them remotely."
 readme = "README.md"
 requires-python = ">=3.10"
