@@ -1,7 +1,6 @@
 import ast
 import pathlib
 
-import pytest
 
 from piscout import fleet, i18n
 
