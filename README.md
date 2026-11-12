@@ -58,6 +58,17 @@ It is an early version, see [Status](#status-and-roadmap) for exactly what is ve
 
 The Devices screenshot uses the simulated device; the Flash OS screenshot uses the real official OS list.
 
+## First connection to a Pi
+
+1. **Get the Pi ready.** It needs Raspberry Pi OS with **SSH enabled** and a username and password. Set both while flashing: in Raspberry Pi Imager's OS customisation, or on piscout's *Flash OS* tab (it enables SSH for you).
+2. **Same network.** Plug the Pi into the same router as this PC (Ethernet, or the same Wi-Fi), power it on and give a fresh card 1–2 minutes for its first boot.
+3. **Open piscout.** The *Devices* tab scans your network on launch; Raspberry Pis are listed with a *Raspberry Pi* tag (other devices are hidden unless you show all).
+4. **Not in the list?** Some routers isolate Wi-Fi clients. Type the Pi's IP or `raspberrypi.local` into the *Not found?* box under the list and press *Add* (replace `raspberrypi` with the hostname you chose).
+5. **Click Connect** and enter the login (password or key file; change the port if it is not 22). Tick the *Remember* box to keep it, encrypted with Windows DPAPI.
+6. A terminal opens in the window. The status bubble (temperature, load, disk) appears once the small agent is installed, and *System info → Health check* tells you about power, heat and SD card problems.
+
+If it fails, the error says what to do next: *refused* means SSH is off on the Pi, *timed out* means the PC cannot reach it on this network, *wrong password* means the login is wrong or password login is disabled.
+
 ## Usage
 
 Download `piscout-setup.exe` from [Releases](../../releases) and run it: it installs per user (no administrator
@@ -89,10 +100,10 @@ How remote re-imaging works:
 
 ## Run from source
 
-Requires Python 3.9+, Windows 10/11 (WebView2 is built in on Windows 11).
+Requires Python 3.10+, Windows 10/11 (WebView2 is built in on Windows 11).
 
 ```bash
-git clone https://github.com/<your-account>/piscout.git
+git clone https://github.com/MilkteaTW1/piscout.git
 cd piscout
 python -m venv .venv
 .venv\Scripts\activate
@@ -100,7 +111,7 @@ pip install -r requirements.txt
 python run_gui.py
 ```
 
-Build the app: `pip install pyinstaller` then `build.bat` (the result is the folder `dist\piscout`). Run tests: `pytest`.
+Build the app: `pip install pyinstaller` then `build.bat` (the result is the folder `dist\piscout`). Run the checks CI runs: `pip install pytest httpx ruff`, then `ruff check .` and `pytest` (SSH and the network are mocked, no Pi needed).
 
 ### Scan from the command line (Windows, macOS, Linux)
 
@@ -186,7 +197,7 @@ It reads the model (from `/proc/device-tree/model` after login) and picks the ma
 No. Use Imager to write a card in your computer. piscout is for managing Pis that are already on the network, and also includes a local flasher for convenience.
 
 **Does it work on Linux or macOS?**
-The app and the local flasher are Windows-only. The LAN scan also runs on Linux and macOS as a command-line tool with only the Python standard library: `python -m piscout scan` (see "Scan from the command line" below). The terminal and remote-flash modules are plain Python and could be ported.
+The app and the local flasher are Windows-only. The LAN scan also runs on Linux and macOS as a command-line tool with only the Python standard library: `python -m piscout scan` (see "Scan from the command line" above). The terminal and remote-flash modules are plain Python and could be ported.
 
 **Is it safe to expose?**
 It binds to `127.0.0.1` only. Do not publish its port. See the security notes above.
@@ -328,6 +339,17 @@ Have a different model or OS version? Please [report a compatibility result](../
 
 **winget** 套件已送出審核（[microsoft/winget-pkgs#451835](https://github.com/microsoft/winget-pkgs/pull/451835)），合併之前請從 Releases 下載；Microsoft Store 的上架素材已備妥於 [`packaging/`](packaging/)。目前尚未簽章，所以會看到 SmartScreen 提示。
 
+## 第一次連上樹莓派
+
+1. **準備好樹莓派**：要裝 Raspberry Pi OS，而且**開啟 SSH**、設好帳號密碼。燒錄時就能設定：Raspberry Pi Imager 的「自訂設定」，或 piscout 的「燒錄系統」分頁（會幫你開 SSH）。
+2. **同一個網路**：樹莓派和這台電腦接在同一台路由器（網路線或同一個 Wi-Fi），開機；新燒的卡第一次開機請等 1～2 分鐘。
+3. **打開 piscout**：「裝置」分頁一打開就會掃描，樹莓派會列出來並標上「Raspberry Pi」（其他裝置預設隱藏，可以切換顯示全部）。
+4. **清單裡沒有？** 有些路由器會隔離 Wi-Fi 裝置。在清單下方「掃不到？」的欄位輸入樹莓派的 IP 或 `raspberrypi.local`（`raspberrypi` 換成你設定的主機名稱），再按「新增」。
+5. **按「連線」**，輸入帳密（密碼或金鑰檔；SSH 不是 22 port 就改連接埠）。勾「記住這台的帳號密碼」會以 Windows DPAPI 加密存起來。
+6. 視窗裡會開出終端機。小 agent 裝好後，右上角會出現狀態泡泡（溫度、負載、磁碟）；「系統資訊 → 健康檢查」會告訴你電源、過熱、SD 卡有沒有問題。
+
+連不上時，錯誤訊息會說下一步：「拒絕連線」是樹莓派沒開 SSH，「逾時」是這台電腦在這個網路上找不到它，「帳號或密碼不對」是帳密錯誤或沒開密碼登入。
+
 ### 連線、終端機、遠端桌面
 
 開啟後會自動掃描。找到的樹莓派按「連線」，輸入帳號密碼，就會在程式裡開出終端機。
@@ -456,10 +478,10 @@ Pi 上」之後的事——找到它、連進去、看畫面、換系統。網�
 
 ## 從原始碼執行
 
-需要 Python 3.9 以上、Windows 10/11（需要 WebView2，Win11 內建）。
+需要 Python 3.10 以上、Windows 10/11（需要 WebView2，Win11 內建）。
 
 ```bash
-git clone https://github.com/<你的帳號>/piscout.git
+git clone https://github.com/MilkteaTW1/piscout.git
 cd piscout
 python -m venv .venv
 .venv\Scripts\activate
@@ -494,7 +516,7 @@ piscout/
 tests/
 ```
 
-跑測試：`pytest`
+跑 CI 會跑的檢查：`pip install pytest httpx ruff`，再執行 `ruff check .` 和 `pytest`（SSH 與網路都是模擬的，不需要樹莓派）。
 
 ## 注意事項
 

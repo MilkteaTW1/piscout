@@ -1,5 +1,5 @@
 """Render the piscout promo video (1280x720, 30 fps, 30 s) with PIL + numpy and mux with ffmpeg."""
-import math, subprocess, sys, wave, os, random
+import math, subprocess, sys, random
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
@@ -240,7 +240,6 @@ def frame(sec):
     t = sec - idx * SCENE
     if idx == 2: t += SCENE            # second slot of the scan scene continues it
     img = SCENES[ORDER[idx]](t)
-    local = sec - idx * SCENE
     ImageDraw.Draw(img).rectangle((0, H - 6, int(W * sec / DUR), H), fill=PINK)
     return img.convert("RGB")
 
