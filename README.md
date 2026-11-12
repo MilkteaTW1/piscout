@@ -62,7 +62,7 @@ The Devices screenshot uses the simulated device; the Flash OS screenshot uses t
 
 1. **Get the Pi ready.** It needs Raspberry Pi OS with **SSH enabled** and a username and password. Set both while flashing: in Raspberry Pi Imager's OS customisation, or on piscout's *Flash OS* tab (it enables SSH for you).
 2. **Same network.** Plug the Pi into the same router as this PC (Ethernet, or the same Wi-Fi), power it on and give a fresh card 1–2 minutes for its first boot.
-3. **Open piscout.** The *Devices* tab scans your network on launch; Raspberry Pis are marked and sorted to the top.
+3. **Open piscout.** The *Devices* tab scans your network on launch; Raspberry Pis are listed with a *Raspberry Pi* tag (other devices are hidden unless you show all).
 4. **Not in the list?** Some routers isolate Wi-Fi clients. Type the Pi's IP or `raspberrypi.local` into the *Not found?* box under the list and press *Add* (replace `raspberrypi` with the hostname you chose).
 5. **Click Connect** and enter the login (password or key file; change the port if it is not 22). Tick the *Remember* box to keep it, encrypted with Windows DPAPI.
 6. A terminal opens in the window. The status bubble (temperature, load, disk) appears once the small agent is installed, and *System info → Health check* tells you about power, heat and SD card problems.
@@ -343,7 +343,7 @@ Have a different model or OS version? Please [report a compatibility result](../
 
 1. **準備好樹莓派**：要裝 Raspberry Pi OS，而且**開啟 SSH**、設好帳號密碼。燒錄時就能設定：Raspberry Pi Imager 的「自訂設定」，或 piscout 的「燒錄系統」分頁（會幫你開 SSH）。
 2. **同一個網路**：樹莓派和這台電腦接在同一台路由器（網路線或同一個 Wi-Fi），開機；新燒的卡第一次開機請等 1～2 分鐘。
-3. **打開 piscout**：「裝置」分頁一打開就會掃描，樹莓派會被標出來並排在最上面。
+3. **打開 piscout**：「裝置」分頁一打開就會掃描，樹莓派會列出來並標上「Raspberry Pi」（其他裝置預設隱藏，可以切換顯示全部）。
 4. **清單裡沒有？** 有些路由器會隔離 Wi-Fi 裝置。在清單下方「掃不到？」的欄位輸入樹莓派的 IP 或 `raspberrypi.local`（`raspberrypi` 換成你設定的主機名稱），再按「新增」。
 5. **按「連線」**，輸入帳密（密碼或金鑰檔；SSH 不是 22 port 就改連接埠）。勾「記住這台的帳號密碼」會以 Windows DPAPI 加密存起來。
 6. 視窗裡會開出終端機。小 agent 裝好後，右上角會出現狀態泡泡（溫度、負載、磁碟）；「系統資訊 → 健康檢查」會告訴你電源、過熱、SD 卡有沒有問題。
