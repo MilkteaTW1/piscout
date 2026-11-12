@@ -55,10 +55,14 @@ class LangMiddleware:
 app.add_middleware(LangMiddleware)
 
 
+def _local_host(headers):
+    """Host 標頭必須是本機（擋 DNS rebinding）。HTTP 和 websocket 共用。"""
+    return (headers.get("host") or "").split(":")[0] in ("127.0.0.1", "localhost")
+
+
 @app.middleware("http")
 async def guard(request, call_next):
-    host = (request.headers.get("host") or "").split(":")[0]
-    if host not in ("127.0.0.1", "localhost"):
+    if not _local_host(request.headers):
         return JSONResponse({"detail": "forbidden"}, status_code=403)
     if request.url.path.startswith("/api/"):
         given = request.headers.get("x-piscout-token", "")
@@ -141,7 +145,7 @@ async def api_resolve(name: str):
     try:
         infos = await run_in_threadpool(socket.getaddrinfo, name, 22, socket.AF_INET, socket.SOCK_STREAM)
     except (OSError, UnicodeError):  # "a..b" 或超過 63 字的標籤會在 idna 編碼時丟 UnicodeError
-        raise HTTPException(404, tr("找不到 {name}：請確認名稱或 IP 沒有打錯，而且這台電腦和樹莓派在同一個網路。", name=name))
+        infos = []
     if not infos:
         raise HTTPException(404, tr("找不到 {name}：請確認名稱或 IP 沒有打錯，而且這台電腦和樹莓派在同一個網路。", name=name))
     return {"ip": _check_host(infos[0][4][0])}
@@ -505,13 +509,12 @@ def _take_session(token, kind):
 def _ws_allowed(ws):
     """HTTP 的 guard 不會跑在 websocket 上，這裡補上同樣的 Host 檢查，
     並拒絕從別的網站（Origin 不是本機）發起的連線。"""
-    host = (ws.headers.get("host") or "").split(":")[0]
-    if host not in ("127.0.0.1", "localhost"):
+    if not _local_host(ws.headers):
         return False
     origin = ws.headers.get("origin")
-    if origin and urllib.parse.urlparse(origin).hostname not in ("127.0.0.1", "localhost"):
-        return False
-    return True
+    # 我們的頁面和這個服務同源，所以 Origin 必須和 Host 完全一樣（含 port），
+    # 本機其他 port 上的網頁也不行。
+    return not origin or urllib.parse.urlparse(origin).netloc == ws.headers.get("host")
 
 
 async def _accept(ws):
@@ -727,6 +730,10 @@ async def api_upload_file(token: str, request: Request, name: str):
                 await run_in_threadpool(sftp.posix_rename, final + ".piscout-part", final)
             except (IOError, OSError) as e:
                 # 例如同名檔案剛好在上傳期間被建立、或伺服器不支援 posix-rename
+                try:
+                    await run_in_threadpool(sftp.remove, final + ".piscout-part")
+                except IOError:
+                    pass
                 raise HTTPException(502, tr("無法寫入 {dir}：{e}", dir=u["dir"], e=e))
         else:
             try:

@@ -222,6 +222,15 @@ def test_websocket_from_foreign_origin_is_refused(client, monkeypatch):
     assert token in app_module.SESSIONS  # 被擋的連線不會把別人的 session 吃掉
 
 
+def test_websocket_from_other_local_port_is_refused(client, monkeypatch):
+    token = _open_terminal_session(client, monkeypatch, mock.MagicMock())
+    with pytest.raises(WebSocketDisconnect) as e:
+        with client.websocket_connect(f"/ws/terminal/{token}",
+                                      headers={**LOCAL, "origin": "http://localhost:3000"}):
+            pass
+    assert e.value.code == 4403
+
+
 def test_websocket_with_foreign_host_is_refused(client, monkeypatch):
     ssh = mock.MagicMock()
     token = _open_terminal_session(client, monkeypatch, ssh)
@@ -334,9 +343,11 @@ def test_upload_unknown_token_is_404(client):
 
 
 def test_upload_rename_failure_is_502_not_500(client):
-    _upload(FakeSftp(rename_error=IOError("Failure")))
+    sftp = FakeSftp(rename_error=IOError("Failure"))
+    _upload(sftp)
     r = client.post("/api/upload/t", params={"name": "a.txt"}, content=b"x", headers=TOKEN)
     assert r.status_code == 502
+    assert sftp.removed == ["/home/pi/a.txt.piscout-part"]  # 不留半成品
 
 
 def test_upload_close_releases_connection(client):
